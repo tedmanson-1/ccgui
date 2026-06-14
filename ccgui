@@ -1,0 +1,173 @@
+-- --- CONFIGURATION & STATE ---
+local mobs = {"Zombie", "Skeleton", "Spider", "Creeper", "Enderman", "Blaze", "Witch"}
+local state = {
+    currentMenu = "main", -- "main" or "mobs"
+    power = false,
+    spawnerActive = false,
+    selectedMob = "None"
+}
+
+-- --- DRAWING UTILITIES ---
+local function clearScreen()
+    term.setBackgroundColor(colors.black)
+    term.clear()
+end
+
+local function drawRect(x, y, width, height, color)
+    term.setBackgroundColor(color)
+    for i = 0, height - 1 do
+        term.setCursorPos(x, y + i)
+        term.write(string.rep(" ", width))
+    end
+end
+
+local function drawText(x, y, text, bg, fg)
+    term.setBackgroundColor(bg)
+    term.setTextColor(fg)
+    term.setCursorPos(x, y)
+    term.write(text)
+end
+
+-- --- DRAW TOGGLE SWITCH ---
+local function drawToggle(x, y, isOn)
+    -- Base gray rectangle (width 5, height 1)
+    drawRect(x, y, 5, 1, colors.gray)
+    if isOn then
+        -- Box is on the right side, green
+        drawRect(x + 3, y, 2, 1, colors.green)
+        drawText(x + 1, y, "ON", colors.gray, colors.white)
+    else
+        -- Box is on the left side, red
+        drawRect(x, y, 2, 1, colors.red)
+        drawText(x + 2, y, "OFF", colors.gray, colors.white)
+    end
+end
+
+-- --- SCREEN RENDERERS ---
+local function drawMainMenu()
+    clearScreen()
+    
+    -- Title Section
+    drawRect(1, 1, 51, 3, colors.blue)
+    drawText(17, 2, "SPAWNER GRID", colors.blue, colors.white)
+    
+    -- Power Section (Row 5)
+    drawText(3, 5, "Power System:", colors.black, colors.white)
+    drawToggle(20, 5, state.power)
+    
+    -- Pull Spawner Button (Row 8)
+    drawRect(3, 8, 22, 3, colors.lightGray)
+    drawText(6, 9, " [ PULL SPAWNER ] ", colors.lightGray, colors.black)
+    
+    -- Selected Mob Display (Row 12)
+    drawText(3, 12, "Active Mob: " .. state.selectedMob, colors.black, colors.yellow)
+    
+    -- Spawner Active Switch (Row 14)
+    drawText(3, 14, "Spawner Status:", colors.black, colors.white)
+    drawToggle(20, 14, state.spawnerActive)
+    
+    -- Put Spawner Away Button (Row 17)
+    drawRect(3, 17, 22, 3, colors.lightGray)
+    drawText(4, 18, " [ PUT SPAWNER AWAY ] ", colors.lightGray, colors.black)
+end
+
+local function drawMobMenu()
+    clearScreen()
+    
+    -- Title
+    drawRect(1, 1, 51, 3, colors.purple)
+    drawText(16, 2, "SELECT A MONSTER", colors.purple, colors.white)
+    
+    -- Back Button
+    drawRect(3, 17, 10, 3, colors.red)
+    drawText(5, 18, "BACK", colors.red, colors.white)
+    
+    -- List of Mobs
+    for i, mob in ipairs(mobs) do
+        local yPos = 4 + i
+        drawRect(5, yPos, 20, 1, colors.gray)
+        drawText(6, yPos, mob, colors.gray, colors.white)
+    end
+end
+
+local function render()
+    if state.currentMenu == "main" then
+        drawMainMenu()
+    else
+        drawMobMenu()
+    end
+end
+
+-- --- INPUT HANDLING ---
+local function handleMainClick(x, y)
+    -- Power Toggle (X: 20 to 24, Y: 5)
+    if x >= 20 and x <= 24 and y == 5 then
+        state.power = not state.power
+        -- Action: Trigger your power redstone here, e.g., redstone.setOutput("back", state.power)
+        return true
+    end
+    
+    -- Pull Spawner Button (X: 3 to 24, Y: 8 to 10)
+    if x >= 3 and x <= 24 and y >= 8 and y <= 10 then
+        state.currentMenu = "mobs"
+        return true
+    end
+    
+    -- Spawner Status Toggle (X: 20 to 24, Y: 14)
+    if x >= 20 and x <= 24 and y == 14 then
+        state.spawnerActive = not state.spawnerActive
+        -- Action: Trigger your spawner redstone here
+        return true
+    end
+    
+    -- Put Spawner Away Button (X: 3 to 24, Y: 17 to 19)
+    if x >= 3 and x <= 24 and y >= 17 and y <= 19 then
+        state.selectedMob = "None"
+        state.spawnerActive = false
+        -- Action: Trigger your inventory/turtle setup to store it
+        return true
+    end
+    
+    return false
+end
+
+local function handleMobClick(x, y)
+    -- Back Button (X: 3 to 12, Y: 17 to 19)
+    if x >= 3 and x <= 12 and y >= 17 and y <= 19 then
+        state.currentMenu = "main"
+        return true
+    end
+    
+    -- Mob Selection List
+    for i, mob in ipairs(mobs) do
+        local yPos = 4 + i
+        -- Check if click falls within the gray list row
+        if x >= 5 and x <= 25 and y == yPos then
+            state.selectedMob = mob
+            state.currentMenu = "main"
+            -- Action: Trigger your mechanical pull logic here for the selected mob
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- --- MAIN PROGRAM LOOP ---
+render()
+
+while true do
+    local event, side, x, y = os.pullEvent("mouse_click")
+    
+    local clicked = false
+    if state.currentMenu == "main" then
+        clicked = handleMainClick(x, y)
+    elseif state.currentMenu == "mobs" then
+        clicked = handleMobClick(x, y)
+    end
+    
+    -- Only redraw if a button was actually hit to prevent screen flickering
+    if clicked then
+        render()
+    end
+end
