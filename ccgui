@@ -1,13 +1,13 @@
 -- --- CONFIGURATION & STATE ---
 local mobs = {"Zombie", "Skeleton", "Spider", "Creeper", "Enderman", "Blaze", "Witch"}
 local state = {
-    currentMenu = "main", -- "main" or "mobs"
+    currentMenu = "main", 
     power = false,
     spawnerActive = false,
-    selectedMob = "Select Spawner" -- Defaulted as requested
+    selectedMob = "Select Spawner" -- Corrected default text
 }
 
--- Get actual screen size for centering
+-- Get monitor/screen dimensions dynamically
 local termWidth, termHeight = term.getSize()
 
 -- --- DRAWING UTILITIES ---
@@ -43,45 +43,49 @@ local function drawToggle(x, y, isOn)
     end
 end
 
--- --- DYNAMIC CENTERING LAYOUT CALCULATIONS ---
--- Button width increased to 26 to comfortably fit " [ PUT SPAWNER AWAY ] "
-local btnWidth = 26
+-- --- PERFECT CENTERING MATH ---
+-- Extra wide 32-block gray button background boxes
+local btnWidth = 32
 local btnX = math.floor((termWidth - btnWidth) / 2) + 1
 
--- Width for label row centers
-local contentWidth = 26 
+-- Width for alignment of the switch labels
+local contentWidth = 22
 local contentX = math.floor((termWidth - contentWidth) / 2) + 1
 
 -- --- SCREEN RENDERERS ---
 local function drawMainMenu()
     clearScreen()
     
-    -- Centered Title Section
+    -- Centered Title Banner
     drawRect(1, 1, termWidth, 3, colors.blue)
     local titleText = "SPAWNER GRID"
     local titleX = math.floor((termWidth - #titleText) / 2) + 1
     drawText(titleX, 2, titleText, colors.blue, colors.white)
     
-    -- Power Section (Row 5)
+    -- Power Section (Row 5) - Centered
     drawText(contentX, 5, "Power System:", colors.black, colors.white)
-    drawToggle(contentX + 16, 5, state.power)
+    drawToggle(contentX + 17, 5, state.power)
     
-    -- Pull Spawner Button (Row 8) - Expanded & Centered
+    -- Pull Spawner Button (Row 8) - Widened & Centered
     drawRect(btnX, 8, btnWidth, 3, colors.lightGray)
-    drawText(btnX + 4, 9, " [ PULL SPAWNER ] ", colors.lightGray, colors.black)
+    local txtPull = " [ PULL SPAWNER ] "
+    local txtPullX = btnX + math.floor((btnWidth - #txtPull) / 2)
+    drawText(txtPullX, 9, txtPull, colors.lightGray, colors.black)
     
-    -- Selected Mob Display (Row 12) - Centered text
+    -- Selected Mob Display (Row 12) - Centered
     local activeText = "Active Mob: " .. state.selectedMob
     local activeX = math.floor((termWidth - #activeText) / 2) + 1
     drawText(activeX, 12, activeText, colors.black, colors.yellow)
     
-    -- Spawner Active Switch (Row 14)
+    -- Spawner Active Switch (Row 14) - Centered
     drawText(contentX, 14, "Spawner Status:", colors.black, colors.white)
-    drawToggle(contentX + 16, 14, state.spawnerActive)
+    drawToggle(contentX + 17, 14, state.spawnerActive)
     
-    -- Put Spawner Away Button (Row 17) - Expanded & Centered
+    -- Put Spawner Away Button (Row 17) - Widened & Centered
     drawRect(btnX, 17, btnWidth, 3, colors.lightGray)
-    drawText(btnX + 2, 18, " [ PUT SPAWNER AWAY ] ", colors.lightGray, colors.black)
+    local txtPut = " [ PUT SPAWNER AWAY ] "
+    local txtPutX = btnX + math.floor((btnWidth - #txtPut) / 2)
+    drawText(txtPutX, 18, txtPut, colors.lightGray, colors.black)
 end
 
 local function drawMobMenu()
@@ -94,19 +98,21 @@ local function drawMobMenu()
     drawText(mobTitleX, 2, mobTitle, colors.purple, colors.white)
     
     -- List of Mobs - Centered boxes
-    local listWidth = 22
+    local listWidth = 26
     local listX = math.floor((termWidth - listWidth) / 2) + 1
     for i, mob in ipairs(mobs) do
         local yPos = 4 + i
         drawRect(listX, yPos, listWidth, 1, colors.gray)
-        drawText(listX + 1, yPos, mob, colors.gray, colors.white)
+        -- Center text inside the row box
+        local mobTxtX = listX + math.floor((listWidth - #mob) / 2)
+        drawText(mobTxtX, yPos, mob, colors.gray, colors.white)
     end
     
-    -- Back Button - Placed neatly at the bottom center
-    local backWidth = 10
+    -- Back Button - Bottom center
+    local backWidth = 12
     local backX = math.floor((termWidth - backWidth) / 2) + 1
     drawRect(backX, 17, backWidth, 3, colors.red)
-    drawText(backX + 3, 18, "BACK", colors.red, colors.white)
+    drawText(backX + 4, 18, "BACK", colors.red, colors.white)
 end
 
 local function render()
@@ -120,7 +126,7 @@ end
 -- --- INPUT HANDLING ---
 local function handleMainClick(x, y)
     -- Power Toggle Click Detection
-    if x >= (contentX + 16) and x <= (contentX + 20) and y == 5 then
+    if x >= (contentX + 17) and x <= (contentX + 21) and y == 5 then
         state.power = not state.power
         return true
     end
@@ -132,14 +138,14 @@ local function handleMainClick(x, y)
     end
     
     -- Spawner Status Toggle Click Detection
-    if x >= (contentX + 16) and x <= (contentX + 20) and y == 14 then
+    if x >= (contentX + 17) and x <= (contentX + 21) and y == 14 then
         state.spawnerActive = not state.spawnerActive
         return true
     end
     
     -- Put Spawner Away Button Click Detection
     if x >= btnX and x <= (btnX + btnWidth - 1) and y >= 17 and y <= 19 then
-        state.selectedMob = "Select Spawner"
+        state.selectedMob = "Select Spawner" -- Resets to your default label
         state.spawnerActive = false
         return true
     end
@@ -149,7 +155,7 @@ end
 
 local function handleMobClick(x, y)
     -- Back Button Click Detection
-    local backWidth = 10
+    local backWidth = 12
     local backX = math.floor((termWidth - backWidth) / 2) + 1
     if x >= backX and x <= (backX + backWidth - 1) and y >= 17 and y <= 19 then
         state.currentMenu = "main"
@@ -157,7 +163,7 @@ local function handleMobClick(x, y)
     end
     
     -- Mob Selection List Click Detection
-    local listWidth = 22
+    local listWidth = 26
     local listX = math.floor((termWidth - listWidth) / 2) + 1
     for i, mob in ipairs(mobs) do
         local yPos = 4 + i
@@ -175,16 +181,19 @@ end
 render()
 
 while true do
-    local event, side, x, y = os.pullEvent("mouse_click")
+    -- Works for both computer screen clicks and peripheral monitor clicks
+    local event, side, x, y = os.pullEvent()
     
-    local clicked = false
-    if state.currentMenu == "main" then
-        clicked = handleMainClick(x, y)
-    elseif state.currentMenu == "mobs" then
-        clicked = handleMobClick(x, y)
-    end
-    
-    if clicked then
-        render()
+    if event == "mouse_click" or event == "monitor_touch" then
+        local clicked = false
+        if state.currentMenu == "main" then
+            clicked = handleMainClick(x, y)
+        elseif state.currentMenu == "mobs" then
+            clicked = handleMobClick(x, y)
+        end
+        
+        if clicked then
+            render()
+        end
     end
 end
