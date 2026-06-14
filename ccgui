@@ -4,8 +4,11 @@ local state = {
     currentMenu = "main", -- "main" or "mobs"
     power = false,
     spawnerActive = false,
-    selectedMob = "None"
+    selectedMob = "Select Spawner" -- Defaulted as requested
 }
+
+-- Get actual screen size for centering
+local termWidth, termHeight = term.getSize()
 
 -- --- DRAWING UTILITIES ---
 local function clearScreen()
@@ -30,64 +33,80 @@ end
 
 -- --- DRAW TOGGLE SWITCH ---
 local function drawToggle(x, y, isOn)
-    -- Base gray rectangle (width 5, height 1)
     drawRect(x, y, 5, 1, colors.gray)
     if isOn then
-        -- Box is on the right side, green
         drawRect(x + 3, y, 2, 1, colors.green)
         drawText(x + 1, y, "ON", colors.gray, colors.white)
     else
-        -- Box is on the left side, red
         drawRect(x, y, 2, 1, colors.red)
         drawText(x + 2, y, "OFF", colors.gray, colors.white)
     end
 end
 
+-- --- DYNAMIC CENTERING LAYOUT CALCULATIONS ---
+-- Button width increased to 26 to comfortably fit " [ PUT SPAWNER AWAY ] "
+local btnWidth = 26
+local btnX = math.floor((termWidth - btnWidth) / 2) + 1
+
+-- Width for label row centers
+local contentWidth = 26 
+local contentX = math.floor((termWidth - contentWidth) / 2) + 1
+
 -- --- SCREEN RENDERERS ---
 local function drawMainMenu()
     clearScreen()
     
-    -- Title Section
-    drawRect(1, 1, 51, 3, colors.blue)
-    drawText(17, 2, "SPAWNER GRID", colors.blue, colors.white)
+    -- Centered Title Section
+    drawRect(1, 1, termWidth, 3, colors.blue)
+    local titleText = "SPAWNER GRID"
+    local titleX = math.floor((termWidth - #titleText) / 2) + 1
+    drawText(titleX, 2, titleText, colors.blue, colors.white)
     
     -- Power Section (Row 5)
-    drawText(3, 5, "Power System:", colors.black, colors.white)
-    drawToggle(20, 5, state.power)
+    drawText(contentX, 5, "Power System:", colors.black, colors.white)
+    drawToggle(contentX + 16, 5, state.power)
     
-    -- Pull Spawner Button (Row 8)
-    drawRect(3, 8, 22, 3, colors.lightGray)
-    drawText(6, 9, " [ PULL SPAWNER ] ", colors.lightGray, colors.black)
+    -- Pull Spawner Button (Row 8) - Expanded & Centered
+    drawRect(btnX, 8, btnWidth, 3, colors.lightGray)
+    drawText(btnX + 4, 9, " [ PULL SPAWNER ] ", colors.lightGray, colors.black)
     
-    -- Selected Mob Display (Row 12)
-    drawText(3, 12, "Active Mob: " .. state.selectedMob, colors.black, colors.yellow)
+    -- Selected Mob Display (Row 12) - Centered text
+    local activeText = "Active Mob: " .. state.selectedMob
+    local activeX = math.floor((termWidth - #activeText) / 2) + 1
+    drawText(activeX, 12, activeText, colors.black, colors.yellow)
     
     -- Spawner Active Switch (Row 14)
-    drawText(3, 14, "Spawner Status:", colors.black, colors.white)
-    drawToggle(20, 14, state.spawnerActive)
+    drawText(contentX, 14, "Spawner Status:", colors.black, colors.white)
+    drawToggle(contentX + 16, 14, state.spawnerActive)
     
-    -- Put Spawner Away Button (Row 17)
-    drawRect(3, 17, 22, 3, colors.lightGray)
-    drawText(4, 18, " [ PUT SPAWNER AWAY ] ", colors.lightGray, colors.black)
+    -- Put Spawner Away Button (Row 17) - Expanded & Centered
+    drawRect(btnX, 17, btnWidth, 3, colors.lightGray)
+    drawText(btnX + 2, 18, " [ PUT SPAWNER AWAY ] ", colors.lightGray, colors.black)
 end
 
 local function drawMobMenu()
     clearScreen()
     
-    -- Title
-    drawRect(1, 1, 51, 3, colors.purple)
-    drawText(16, 2, "SELECT A MONSTER", colors.purple, colors.white)
+    -- Centered Title
+    drawRect(1, 1, termWidth, 3, colors.purple)
+    local mobTitle = "SELECT A MONSTER"
+    local mobTitleX = math.floor((termWidth - #mobTitle) / 2) + 1
+    drawText(mobTitleX, 2, mobTitle, colors.purple, colors.white)
     
-    -- Back Button
-    drawRect(3, 17, 10, 3, colors.red)
-    drawText(5, 18, "BACK", colors.red, colors.white)
-    
-    -- List of Mobs
+    -- List of Mobs - Centered boxes
+    local listWidth = 22
+    local listX = math.floor((termWidth - listWidth) / 2) + 1
     for i, mob in ipairs(mobs) do
         local yPos = 4 + i
-        drawRect(5, yPos, 20, 1, colors.gray)
-        drawText(6, yPos, mob, colors.gray, colors.white)
+        drawRect(listX, yPos, listWidth, 1, colors.gray)
+        drawText(listX + 1, yPos, mob, colors.gray, colors.white)
     end
+    
+    -- Back Button - Placed neatly at the bottom center
+    local backWidth = 10
+    local backX = math.floor((termWidth - backWidth) / 2) + 1
+    drawRect(backX, 17, backWidth, 3, colors.red)
+    drawText(backX + 3, 18, "BACK", colors.red, colors.white)
 end
 
 local function render()
@@ -100,31 +119,28 @@ end
 
 -- --- INPUT HANDLING ---
 local function handleMainClick(x, y)
-    -- Power Toggle (X: 20 to 24, Y: 5)
-    if x >= 20 and x <= 24 and y == 5 then
+    -- Power Toggle Click Detection
+    if x >= (contentX + 16) and x <= (contentX + 20) and y == 5 then
         state.power = not state.power
-        -- Action: Trigger your power redstone here, e.g., redstone.setOutput("back", state.power)
         return true
     end
     
-    -- Pull Spawner Button (X: 3 to 24, Y: 8 to 10)
-    if x >= 3 and x <= 24 and y >= 8 and y <= 10 then
+    -- Pull Spawner Button Click Detection
+    if x >= btnX and x <= (btnX + btnWidth - 1) and y >= 8 and y <= 10 then
         state.currentMenu = "mobs"
         return true
     end
     
-    -- Spawner Status Toggle (X: 20 to 24, Y: 14)
-    if x >= 20 and x <= 24 and y == 14 then
+    -- Spawner Status Toggle Click Detection
+    if x >= (contentX + 16) and x <= (contentX + 20) and y == 14 then
         state.spawnerActive = not state.spawnerActive
-        -- Action: Trigger your spawner redstone here
         return true
     end
     
-    -- Put Spawner Away Button (X: 3 to 24, Y: 17 to 19)
-    if x >= 3 and x <= 24 and y >= 17 and y <= 19 then
-        state.selectedMob = "None"
+    -- Put Spawner Away Button Click Detection
+    if x >= btnX and x <= (btnX + btnWidth - 1) and y >= 17 and y <= 19 then
+        state.selectedMob = "Select Spawner"
         state.spawnerActive = false
-        -- Action: Trigger your inventory/turtle setup to store it
         return true
     end
     
@@ -132,20 +148,22 @@ local function handleMainClick(x, y)
 end
 
 local function handleMobClick(x, y)
-    -- Back Button (X: 3 to 12, Y: 17 to 19)
-    if x >= 3 and x <= 12 and y >= 17 and y <= 19 then
+    -- Back Button Click Detection
+    local backWidth = 10
+    local backX = math.floor((termWidth - backWidth) / 2) + 1
+    if x >= backX and x <= (backX + backWidth - 1) and y >= 17 and y <= 19 then
         state.currentMenu = "main"
         return true
     end
     
-    -- Mob Selection List
+    -- Mob Selection List Click Detection
+    local listWidth = 22
+    local listX = math.floor((termWidth - listWidth) / 2) + 1
     for i, mob in ipairs(mobs) do
         local yPos = 4 + i
-        -- Check if click falls within the gray list row
-        if x >= 5 and x <= 25 and y == yPos then
+        if x >= listX and x <= (listX + listWidth - 1) and y == yPos then
             state.selectedMob = mob
             state.currentMenu = "main"
-            -- Action: Trigger your mechanical pull logic here for the selected mob
             return true
         end
     end
@@ -166,7 +184,6 @@ while true do
         clicked = handleMobClick(x, y)
     end
     
-    -- Only redraw if a button was actually hit to prevent screen flickering
     if clicked then
         render()
     end
